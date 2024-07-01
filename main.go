@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"flag"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	s "strings"
@@ -19,7 +20,7 @@ func main() {
 	waitGroup := sync.WaitGroup{}
 	jobs := make(chan string, 100)
 
-	for thread := int8(1); thread <= threadsCount; thread++ {
+	for range threadsCount {
 		go worker(jobs, &waitGroup)
 	}
 
@@ -36,14 +37,18 @@ func worker(jobs <-chan string, waitGroup *sync.WaitGroup) {
 	for job := range jobs {
 		pageData, errDownload := downloadByURL(job)
 		if errDownload != nil {
-			panic(errDownload)
+			log.Println(errDownload)
+			waitGroup.Done()
+			continue
 		}
 
 		fileName := convPageURLToFileName(job)
 
 		errStore := storeFile(fileName, pageData)
 		if errStore != nil {
-			panic(errStore)
+			log.Println(errStore)
+			waitGroup.Done()
+			continue
 		}
 
 		waitGroup.Done()
